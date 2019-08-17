@@ -1,5 +1,6 @@
 'use strict';
 require('dotenv').config();
+const axios = require('axios');
 const BootBot = require('bootbot');
 const payloads = require('./constants/payloads');
 
@@ -18,15 +19,45 @@ const askOccupation = (convo) => {
     const text = payload.message.text;
     convo.set('occupation', text);
 
-    await convo.say(`Gracias por brindarnos todos tus datos!`)
+    await convo.say(`Gracias por brindarnos todos tus datos!`);
+
+    const name = convo.get('name');
+    const email = convo.get('email');
+    const birthdate = convo.get('birthdate');
+    const phone = convo.get('phone');
+    const gender = convo.get('gender');
+    const district = convo.get('district');
+    const occupation = convo.get('occupation');
+
     await convo.say(`Esta es la información que guardaremos:
-    - Nombre: ${convo.get('name')}
-    - Email: ${convo.get('email')}
-    - Fecha de nacimiento: ${convo.get('birthdate')}
-    - Celular: ${convo.get('phone')}
-    - Sexo: ${convo.get('gender')}
-    - Distrito: ${convo.get('district')}
+    - Nombre: ${name}
+    - Email: ${email}
+    - Fecha de nacimiento: ${birthdate}
+    - Celular: ${phone}
+    - Sexo: ${gender}
+    - Distrito: ${district}
+    - Ocupación: ${occupation}
     `);
+
+    try {
+      const { id: psid } = payload.sender;
+
+      await axios.post('https://vialibro-api.herokuapp.com/volunteers', {
+        psId: psid,
+        name,
+        email,
+        birthDate: JSON.stringify(new Date(birthdate)),
+        phone,
+        gender,
+        district,
+        occupation,
+      });
+
+      console.log('Registration complete!');
+    } catch (e) {
+      console.error('There was an error creating the user: ', e);
+      await convo.say('Hubo un error registrando tus datos, intentalo nuevamente!');
+    }
 
     convo.end();
   });
@@ -98,8 +129,7 @@ bot.setGetStartedButton(async (payload, chat) => {
 });
 
 bot.on(`postback:${payloads.REGISTER}`, async (payload, chat) => {
-  const { id: psid } = payload.sender;
-  console.log('psid: ', psid);
+  console.log('Super Updated');
 
   chat.conversation(convo => {
     askName(convo);
